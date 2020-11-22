@@ -387,8 +387,44 @@ class BasePlotter(PickingHelper, WidgetHelper):
         """Wrap ``Renderer.remove_floors``."""
         return self.renderer.remove_floors(*args, **kwargs)
 
-    def enable_3_lights(self):
-        """Enable 3-lights illumination."""
+    def enable_3_lights(self, only_active=False):
+        """Enable 3-lights illumination.
+
+        This will replace all pre-existing lights in the scene.
+
+        Parameters
+        ----------
+        only_active : bool
+            If ``True``, only change the active renderer. The default is that
+            every renderer is affected.
+
+        """
+        # TODO: this changes every renderer now by default, which is what it should be doing anyway I think
+        def _to_pos(elevation, azimuth):
+            theta = azimuth * np.pi / 180.0
+            phi = (90.0 - elevation) * np.pi / 180.0
+            x = np.sin(theta) * np.sin(phi)
+            y = np.cos(phi)
+            z = np.cos(theta) * np.sin(phi)
+            return x, y, z
+
+        renderers = [self.renderer] if only_active else self.renderers
+        for renderer in renderers:
+            renderer.remove_all_lights()
+
+        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
+        intensities = [1, 0.6, 0.5]
+        all_angles = [(45.0, 45.0), (-30.0, -60.0), (-30.0, 60.0)]
+        # TODO: do we want to add a placeholder zeroth light for backwards compat?
+        for intensity, angles in zip(intensities, all_angles):
+            light = pyvista.Light()
+            light.intensity = intensity
+            light.position = _to_pos(*angles)
+            for renderer in renderers:
+                renderer.add_light(light)
+
+    def _orig_enable_3_lights(self):
+        # TODO TODO REMOVE THIS!!! only here to double-check new implementation
         def _to_pos(elevation, azimuth):
             theta = azimuth * np.pi / 180.0
             phi = (90.0 - elevation) * np.pi / 180.0
@@ -418,13 +454,24 @@ class BasePlotter(PickingHelper, WidgetHelper):
         lights[2].SetPosition(_to_pos(-30.0, 60.0))
         lights[2].SetIntensity(0.5)
 
-    def disable_3_lights(self):
-        """Disable 3-lights illumination."""
+    def disable_3_lights(self, only_active=False):
+        """Disable 3-lights illumination.
+
+        Parameters
+        ----------
+        only_active : bool
+            If ``True``, only change the active renderer. The default is that
+            every renderer is affected.
+
+        """
+        renderers = [self.renderer] if only_active else self.renderers
+
         self.lighting = vtk.vtkLightKit()
+        # TODO: we should probably do something to self.lighting...
         # self.lighting.SetHeadLightWarmth(1.0)
         # self.lighting.SetHeadLightWarmth(1.0)
-        for renderer in self.renderers:
-            renderer.RemoveAllLights()
+        for renderer in renderers:
+            renderer.remove_all_lights()
             self.lighting.AddLightsToRenderer(renderer)
             renderer.LightFollowCameraOn()
 
@@ -3864,6 +3911,21 @@ class BasePlotter(PickingHelper, WidgetHelper):
         """Reset camera clipping planes."""
         self.renderer.ResetCameraClippingRange()
 
+    def add_light(self, light, only_active=False):
+        """Add a Light to the plot.
+
+        Parameters
+        ----------
+        only_active : bool
+            If ``True``, only add the light to the active renderer. The default
+            is that every renderer adds the light. To add the light to an arbitrary
+            renderer, see the ``add_light`` method of the Renderer class.
+
+        """
+        # TODO: is this design OK?
+        renderers = [self.renderer] if only_active else self.renderers
+        for renderer in renderers:
+            renderer.add_light(light)
 
 class Plotter(BasePlotter):
     """Plotting object to display vtk meshes or numpy arrays.

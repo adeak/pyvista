@@ -187,21 +187,23 @@ def test_lighting():
     plotter = pyvista.Plotter()
 
     # test default disable_3_lights()
-    lights = list(plotter.renderer.GetLights())
-    assert all([light.GetSwitch() for light in lights])
+    lights = plotter.renderer.lights
+    assert all(light.is_on for light in lights)
 
     plotter.enable_3_lights()
-    lights = list(plotter.renderer.GetLights())
-    headlight = lights.pop(0)
-    assert not headlight.GetSwitch()
-    for i in range(len(lights)):
-        if i < 3:
-            assert lights[i].GetSwitch()
-        else:
-            assert not lights[i].GetSwitch()
-    assert lights[0].GetIntensity() == 1.0
-    assert lights[1].GetIntensity() == 0.6
-    assert lights[2].GetIntensity() == 0.5
+    lights = plotter.renderer.lights
+    assert len(lights) == 3
+    for light in lights:
+        assert light.is_on
+
+    assert lights[0].intensity == 1.0
+    assert lights[1].intensity == 0.6
+    assert lights[2].intensity == 0.5
+
+    # test manual light addition
+    light = pyvista.Light()
+    plotter.add_light(light)
+    assert plotter.renderer.lights[-1] is light
     plotter.close()
 
 
