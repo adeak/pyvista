@@ -203,7 +203,16 @@ def test_lighting():
     # test manual light addition
     light = pyvista.Light()
     plotter.add_light(light)
-    assert plotter.renderer.lights[-1] is light
+    assert plotter.renderer.lights[-1]._light is light._light
+
+    light = pyvista.Light()
+    plotter.add_light(light._light)
+    assert plotter.renderer.lights[-1]._light is light._light
+
+    # failing case
+    with pytest.raises(TypeError):
+        plotter.add_light('invalid')
+
     plotter.close()
 
 

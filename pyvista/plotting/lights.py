@@ -4,7 +4,6 @@ import re
 from enum import IntEnum
 
 import vtk
-from vtk import vtkLight
 
 import pyvista
 
@@ -19,11 +18,15 @@ class LightType(IntEnum):
         """Pretty name for a light type."""
         return self.name.replace('_', ' ').title()
 
-class Light(vtkLight):
+class Light():
     """Light class.
 
     Parameters
     ----------
+    existing_light : vtkLight, optional
+        A vtkLight that should be wrapped by this instance. If missing, a new
+        light is created. If provided, keyword arguments will be ignored.
+
     position : list or tuple, optional
         The position of the light. The interpretation of the position depends
         on the type of the light.
@@ -44,6 +47,7 @@ class Light(vtkLight):
         position with respect to it.
         A scene light is stationary with respect to the scene, as it does not
         follow the camera. This is the default.
+
     """
     # TODO: don't we want to wrap with composition instead of inheritance?
     # TODO: better/more explanation for ``position``?
@@ -54,9 +58,17 @@ class Light(vtkLight):
     SCENE_LIGHT = LightType.SCENE_LIGHT
     # TODO: is this design OK?
 
-    def __init__(self, position=None, color=None, light_type='scene light'):
+    def __init__(self, existing_light=None, *, position=None, color=None, light_type='scene light'):
         """Initialize the light."""
-        super().__init__()
+        # positional argument: only wrap a vtkLight
+        if isinstance(existing_light, vtk.vtkLight):
+            self._light = existing_light
+            return
+
+        # only keyword arguments: create new light
+        if existing_light is not None:
+            raise TypeError('Positional argument to ``Light`` must be a ``vtkLight`` instance.')
+        self._light = vtk.vtkLight()
 
         if position:
             self.position = position
@@ -79,7 +91,8 @@ class Light(vtkLight):
             if light_type is None:
                 raise ValueError(f'Invalid ``light_type`` "{light_type_orig}"')
         elif not isinstance(light_type, int):
-            raise TypeError(f'Parameter ``light_type`` must be int or str, not {type(light_type)}.')
+            raise TypeError('Parameter ``light_type`` must be int or str,'
+                            f' not {type(light_type)}.')
         # LightType is an int subclass; convert to an int at worst
         
         self.light_type = light_type
@@ -90,38 +103,44 @@ class Light(vtkLight):
         # TODO: should color and point and direction_angle have more flexible signatures? (only for non-properties)
         # TODO: ndarray type and shape and size checking for color and point
         # TODO: update light things in plotting.py (renderer): (en|dis)able_3_lights -> new lighting kwarg? (BasePlotter init)
+        # TODO: test copy, deepcopy
+
+    def __repr__(self):
+        """Print a repr specifying the id of the light and the vtkLight it wraps."""
+        return (f'<pyvista.Light at {hex(id(self))} wrapping vtk.vtkLight'
+                f' at {hex(id(self._light))}>')
 
     #### Properties ####
 
     @property
     def ambient_color(self):
         """Return the ambient color of the light."""
-        return self.GetAmbientColor()
+        return self._light.GetAmbientColor()
 
     @ambient_color.setter
     def ambient_color(self, color):
         """Set the ambient color of the light."""
-        self.SetAmbientColor(color)
+        self._light.SetAmbientColor(color)
 
     @property
     def diffuse_color(self):
         """Return the diffuse color of the light."""
-        return self.GetDiffuseColor()
+        return self._light.GetDiffuseColor()
 
     @diffuse_color.setter
     def diffuse_color(self, color):
         """Set the diffuse color of the light."""
-        self.SetDiffuseColor(color)
+        self._light.SetDiffuseColor(color)
 
     @property
     def specular_color(self):
         """Return the specular color of the light."""
-        return self.GetSpecularColor()
+        return self._light.GetSpecularColor()
 
     @specular_color.setter
     def specular_color(self, color):
         """Set the specular color of the light."""
-        self.SetSpecularColor(color)
+        self._light.SetSpecularColor(color)
     
     # TODO: implement light.color = ... using __setattr__? no guarantee that a getter would always make sense, so property won't work!
 
@@ -134,18 +153,18 @@ class Light(vtkLight):
         light's world space position, use the ``world_position`` property.
 
         """
-        return self.GetPosition()
+        return self._light.GetPosition()
 
     @position.setter
     def position(self, pos):
-        self.SetPosition(pos)
+        self._light.SetPosition(pos)
 
     @property
     def world_position(self):
         # TODO: is this name and configuration OK? Same for world_focal_point
         # TODO: can a transformation matrix happen accidentally? If not, perhaps we can just not expose these at all!
         """Return the world space position of the light."""
-        return self.GetTransformedPosition()
+        return self._light.GetTransformedPosition()
 
     @property
     def focal_point(self):
@@ -157,36 +176,36 @@ class Light(vtkLight):
         property.
 
         """
-        return self.GetFocalPoint()
+        return self._light.GetFocalPoint()
 
     @focal_point.setter
     def focal_point(self, pos):
-        self.SetFocalPoint(pos)
+        self._light.SetFocalPoint(pos)
 
     @property
     def world_focal_point(self):
         """Return the world space focal point of the light."""
-        return self.GetTransformedFocalPoint()
+        return self._light.GetTransformedFocalPoint()
 
     @property
     def intensity(self):
         """Return the brightness of the light (between 0 and 1)."""
-        return self.GetIntensity()
+        return self._light.GetIntensity()
 
     @intensity.setter
     def intensity(self, intensity):
-        self.SetIntensity(intensity)
+        self._light.SetIntensity(intensity)
 
     @property
     def is_on(self):
         # TODO: is this name OK? Just "on" sounds too short.
         """Return whether the light is on."""
-        return self.GetSwitch()
+        return bool(self._light.GetSwitch())
 
     @is_on.setter
     def is_on(self, state):
         """Set whether the light should be on."""
-        self.SetSwitch(state)
+        self._light.SetSwitch(state)
 
     @property
     def positional(self):
@@ -198,22 +217,22 @@ class Light(vtkLight):
         positional light.
 
         """
-        return self.GetPositional()
+        return bool(self._light.GetPositional())
 
     @positional.setter
     def positional(self, state):
         """Set whether the light should be positional."""
-        self.SetPositional(state)
+        self._light.SetPositional(state)
 
     @property
     def exponent(self):
         """Return the exponent of the cosine used in positional lighting."""
-        return self.GetExponent()
+        return self._light.GetExponent()
 
     @exponent.setter
     def exponent(self, exp):
         """Set the exponent of the cosine used in positional lighting."""
-        self.SetExponent(exp)
+        self._light.SetExponent(exp)
 
     @property
     def cone_angle(self):
@@ -225,12 +244,12 @@ class Light(vtkLight):
         light.
 
         """
-        return self.GetConeAngle()
+        return self._light.GetConeAngle()
 
     @cone_angle.setter
     def cone_angle(self, angle):
         """Set the cone angle of a positional light."""
-        self.SetConeAngle(angle)
+        self._light.SetConeAngle(angle)
 
     @property
     def attenuation_values(self):
@@ -240,12 +259,12 @@ class Light(vtkLight):
         in this order.
 
         """
-        return self.GetAttenuationValues()
+        return self._light.GetAttenuationValues()
 
     @attenuation_values.setter
     def attenuation_values(self, values):
         """Set the quadratic attenuation constants."""
-        self.SetAttenuationValues(values)
+        self._light.SetAttenuationValues(values)
 
     # TODO: implement transformation_matrix here?
 
@@ -272,7 +291,7 @@ class Light(vtkLight):
             - Light.SCENE_LIGHT == 3
 
         """
-        return LightType(self.GetLightType())
+        return LightType(self._light.GetLightType())
 
     @light_type.setter
     def light_type(self, ltype):
@@ -286,22 +305,22 @@ class Light(vtkLight):
                             f' got {ltype} instead.')
         # LightType is an int subclass; convert to proper int
         ltype = int(ltype)
-        self.SetLightType(ltype)
+        self._light.SetLightType(ltype)
 
     @property
     def is_headlight(self):
         """Return whether the light is a headlight."""
-        return self.LightTypeIsHeadlight()
+        return bool(self._light.LightTypeIsHeadlight())
 
     @property
     def is_camera_light(self):
         """Return whether the light is a camera light."""
-        return self.LightTypeIsCameraLight()
+        return bool(self._light.LightTypeIsCameraLight())
 
     @property
     def is_scene_light(self):
         """Return whether the light is a scene light."""
-        return self.LightTypeIsSceneLight()
+        return bool(self._light.LightTypeIsSceneLight())
 
     @property
     def shadow_attenuation(self):
@@ -312,12 +331,12 @@ class Light(vtkLight):
         light is attenuated when in shadow. 
 
         """
-        return self.GetShadowAttenuation()
+        return self._light.GetShadowAttenuation()
 
     @shadow_attenuation.setter
     def shadow_attenuation(self, shadow_intensity):
         """Set the shadow intensity"""
-        self.SetShadowAttenuation(shadow_intensity)
+        self._light.SetShadowAttenuation(shadow_intensity)
 
     #### Everything else ####
 
@@ -333,15 +352,15 @@ class Light(vtkLight):
             The color that should be set for diffuse and specular.
 
         """
-        self.SetColor(color)
+        self._light.SetColor(color)
 
     def switch_on(self):
         """Switch on the light."""
-        self.SwitchOn()
+        self._light.SwitchOn()
 
     def switch_off(self):
         """Switch off the light."""
-        self.SwitchOff()
+        self._light.SwitchOff()
 
     def switch(self, is_on=None):
         # TODO: this is slightly redundant with the is_on property, although it can toggle
@@ -357,7 +376,7 @@ class Light(vtkLight):
         if is_on is None:
             # toggle
             is_on = not self.is_on
-        self.SetSwitch(is_on)
+        self._light.SetSwitch(is_on)
 
     def positional_on(self):
         """Make the light positional.
@@ -365,7 +384,7 @@ class Light(vtkLight):
         Attenuation and cone angles are only used for a positional light.
 
         """
-        self.PositionalOn()
+        self._light.PositionalOn()
 
     def positional_off(self):
         """Make the light directional.
@@ -373,7 +392,7 @@ class Light(vtkLight):
         Attenuation and cone angles are ignored for a directional light.
 
         """
-        self.PositionalOff()
+        self._light.PositionalOff()
 
     # TODO: implement transform_point, transform_vector here?
 
@@ -393,9 +412,19 @@ class Light(vtkLight):
             The azimuthal angle of the directional light.
 
         """
-        self.SetDirectionAngle(elev, azim)
+        self._light.SetDirectionAngle(elev, azim)
 
-    # TODO: deepcopy?
+    def shallow_copy(self):
+        """Return a shallow copy of the light, sharing the same vtkLight."""
+        copy = pyvista.Light(self._light)
+        return copy
+
+    def deepcopy(self):
+        """Return a deep copy of the light."""
+        vtk_light = vtk.vtkLight()
+        vtk_light.DeepCopy(self._light)
+        copy = pyvista.Light(vtk_light)
+        return copy
 
     def set_headlight(self):
         """Set the light to be a headlight.
@@ -405,7 +434,7 @@ class Light(vtkLight):
         transformation matrix.
 
         """
-        self.SetLightTypeToHeadlight()
+        self._light.SetLightTypeToHeadlight()
 
     def set_camera_light(self):
         """Set the light to be a camera light.
@@ -421,7 +450,7 @@ class Light(vtkLight):
         Calling this method will reset the light's transformation matrix.
 
         """
-        self.SetLightTypeToCameraLight()
+        self._light.SetLightTypeToCameraLight()
 
     def set_scene_light(self):
         """Set the light to be a scene light.
@@ -430,35 +459,5 @@ class Light(vtkLight):
         Calling this method will reset the light's transformation matrix.
 
         """
-        self.SetLightTypeToSceneLight()
+        self._light.SetLightTypeToSceneLight()
 
-    @classmethod
-    def from_vtk(cls, vtk_light):
-        # TODO: is this actually useful...?
-        """Creates a Light object from a vtkLight, resulting in a copy.
-
-        Parameters
-        ----------
-        vtk_light : vtkLight
-            The ``vtkLight`` to be copied.
-
-        """
-        if not isinstance(vtk_light, vtkLight):
-            raise TypeError(f'Expected ``vtkLight`` object, got ``{type(vtk_light)}`` instead.')
-
-        light = cls()
-        light.light_type = vtk_light.GetLightType()  # resets transformation matrix!
-        light.position = vtk_light.GetPosition()
-        light.focal_point = vtk_light.GetFocalPoint()
-        light.ambient_color = vtk_light.GetAmbientColor()
-        light.diffuse_color = vtk_light.GetDiffuseColor()
-        light.specular_color = vtk_light.GetSpecularColor()
-        light.intensity = vtk_light.GetIntensity()
-        light.is_on = vtk_light.GetSwitch()
-        light.positional = vtk_light.GetPositional()
-        light.exponent = vtk_light.GetExponent()
-        light.cone_angle = vtk_light.GetConeAngle()
-        light.attenuation_values = vtk_light.GetAttenuationValues()
-        light.shadow_attenuation = vtk_light.GetShadowAttenuation()
-
-        return light

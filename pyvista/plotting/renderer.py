@@ -1067,16 +1067,20 @@ class Renderer(vtkRenderer):
 
     def add_light(self, light):
         """Add a Light to the renderer."""
-        if not isinstance(light, vtk.vtkLight):
+        if isinstance(light, pyvista.Light):
+            vtk_light = light._light
+        elif isinstance(light, vtk.vtkLight):
+            vtk_light = light
+        else:
             raise TypeError('Expected Light or vtkLight instance,'
                             f' got {type(light)} instead.')
-        self.AddLight(light)
+        self.AddLight(vtk_light)
         self.Modified()
 
     @property
     def lights(self):
         """Return a list of all lights in the renderer."""
-        return list(self.GetLights())
+        return [pyvista.Light(light) for light in self.GetLights()]
 
     def remove_all_lights(self):
         """Remove all lights from the renderer."""

@@ -26,6 +26,9 @@ def test_init():
     assert light.specular_color == color
     assert light.light_type == light.HEADLIGHT
 
+    # check repr too
+    assert repr(light) is not None
+
 
 @skip_no_plotting
 def test_colors():
@@ -154,6 +157,7 @@ def test_type_properties(int_code, enum_code):
     light.light_type = enum_code
     assert light.light_type == enum_code
 
+
 @skip_no_plotting
 def test_type_setters():
     light = pyvista.Light()
@@ -164,6 +168,7 @@ def test_type_setters():
     assert light.is_camera_light
     light.set_scene_light()
     assert light.is_scene_light
+
 
 @skip_no_plotting
 def test_type_invalid():
@@ -177,8 +182,9 @@ def test_type_invalid():
     with pytest.raises(TypeError):
         light.light_type = ['invalid']
 
+
 @skip_no_plotting
-def test_from_vtk():
+def test_wrap_vtk():
     vtk_light = vtk.vtkLight()
 
     # pyvista attr -- value -- vtk name triples:
@@ -198,13 +204,54 @@ def test_from_vtk():
         ('shadow_attenuation', 0.5, 'SetShadowAttenuation'),
     ]
 
+    # set the vtk light
     for _, value, vtkname in configuration:
         vtk_setter = getattr(vtk_light, vtkname)
         vtk_setter(value)
-    light = pyvista.Light.from_vtk(vtk_light)
+    # wrap it
+    light = pyvista.Light(vtk_light)
+    # check it
     for pvname, value, _ in configuration:
         assert getattr(light, pvname) == value
 
     # invalid case
     with pytest.raises(TypeError):
-        pyvista.Light.from_vtk('invalid')
+        pyvista.Light('invalid')
+
+
+@skip_no_plotting
+def test_copies():
+    # prepare a non-trivial state
+    configuration = {
+        'light_type': pyvista.Light.CAMERA_LIGHT,
+        'position': (1, 1, 1),
+        'focal_point': (2, 2, 2),
+        'ambient_color': (1, 0, 0),
+        'diffuse_color': (0, 1, 0),
+        'specular_color': (0, 0, 1),
+        'intensity': 0.5,
+        'is_on': False,
+        'positional': True,
+        'exponent': 1.5,
+        'cone_angle': 45,
+        'attenuation_values': (3, 2, 1),
+        'shadow_attenuation': 0.5,
+    }
+
+    light = pyvista.Light()
+    for attr, value in configuration.items():
+        setattr(light, attr, value)
+
+    shallow_copy = light.shallow_copy()
+    deep_copy = light.deepcopy()
+    # assert that they are both copies
+    for attr, value in configuration.items():
+        assert getattr(shallow_copy, attr) == value
+        assert getattr(deep_copy, attr) == value
+
+    # change light state to change shallow copy
+    light.switch()
+    assert light.is_on
+    assert shallow_copy.is_on
+    assert not deep_copy.is_on
+

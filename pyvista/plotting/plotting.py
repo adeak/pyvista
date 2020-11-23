@@ -455,7 +455,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
         lights[2].SetIntensity(0.5)
 
     def disable_3_lights(self, only_active=False):
-        """Disable 3-lights illumination.
+        """Disable 3-lights illumination and switch to a light kit.
 
         Parameters
         ----------
@@ -468,6 +468,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         self.lighting = vtk.vtkLightKit()
         # TODO: we should probably do something to self.lighting...
+        # TODO: wrap these lights instead of the light kit?
         # self.lighting.SetHeadLightWarmth(1.0)
         # self.lighting.SetHeadLightWarmth(1.0)
         for renderer in renderers:
@@ -2799,7 +2800,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         # Turn off the lights
         for renderer in self.renderers:
-            renderer.RemoveAllLights()
+            renderer.remove_all_lights()
         self.lighting = None
 
         # Clear the scalar bar
