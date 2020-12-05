@@ -1,6 +1,6 @@
 import math
 from hypothesis import given
-from hypothesis.strategies import iterables, tuples, lists, floats, integers, sampled_from
+from hypothesis.strategies import iterables, tuples, lists, floats, integers, sampled_from, one_of
 import pytest
 import vtk
 
@@ -123,23 +123,26 @@ def test_positional():
 
 @skip_no_plotting
 def test_shape():
-    light = pyvista.Light()
-
     exponent = 1.5
     light.exponent = exponent
     assert light.exponent == exponent
-
-    cone_angle = 45
-    light.cone_angle = cone_angle
-    assert light.cone_angle == cone_angle
 
     attenuation_values = (3, 2, 1)
     light.attenuation_values = attenuation_values
     assert light.attenuation_values == attenuation_values
 
-    shadow_attenuation = 0.5
-    light.shadow_attenuation = shadow_attenuation
-    assert light.shadow_attenuation == shadow_attenuation
+
+# TODO, is this the correct range?
+@given(value=floats(min_value=0.0, max_value=1.0))
+def test_shadow_attenuation_should_accept_valid(value, light):
+    light.shadow_attenuation = value
+    assert light.shadow_attenuation == pytest.approx(value)
+
+
+@given(angle=one_of(integers(min_value=0, max_value=360), floats(min_value=0, max_value=360)))
+def test_cone_angle_should_accept_valid_angle(angle, light):
+    light.cone_angle = angle
+    assert light.cone_angle == pytest.approx(angle)
 
 
 @given(enum_code=sampled_from(pyvista.lights.LightType))
