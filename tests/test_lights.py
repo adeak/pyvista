@@ -75,7 +75,7 @@ def test_positioning(light):
 
 @given(intensity=floats(min_value=0.0, max_value=1.0))
 def test_intensity_should_accept_0_to_1(intensity, light):
-    light.intensity = value
+    light.intensity = intensity
     assert light.intensity == pytest.approx(intensity)
 
 
