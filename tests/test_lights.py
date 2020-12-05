@@ -80,11 +80,10 @@ def test_positioning(light):
                in zip(light.position, expected_position))  # TODO: fix this style
 
 
-@skip_no_plotting
-def test_intensity(light):
-    intensity = 0.5
-    light.intensity = intensity
-    assert light.intensity == intensity
+@given(intensity=floats(min_value=0.0, max_value=1.0))
+def test_intensity_should_accept_0_to_1(intensity, light):
+    light.intensity = value
+    assert light.intensity == pytest.approx(intensity)
 
 
 @skip_no_plotting
