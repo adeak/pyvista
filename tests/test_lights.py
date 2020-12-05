@@ -1,6 +1,7 @@
 import math
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis.strategies import iterables, tuples, lists, floats, integers, sampled_from, one_of
+import numpy as np
 import pytest
 import vtk
 
@@ -77,6 +78,13 @@ def test_positioning(light):
 def test_intensity_should_accept_0_to_1(intensity, light):
     light.intensity = intensity
     assert light.intensity == pytest.approx(intensity)
+
+
+@given(intensity=floats(allow_nan=False))
+def test_intensity_should_clamp_out_of_range(intensity, light):
+    assume(not (0.0 < intensity < 1.0))
+    light.intensity = intensity
+    assert light.intensity == pytest.approx(np.clip(intensity, 0.0, 1.0))
 
 
 def test_switch_state(light):

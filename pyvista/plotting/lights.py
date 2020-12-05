@@ -2,6 +2,7 @@
 
 from enum import IntEnum
 
+import numpy as np
 import vtk
 from vtk import vtkLight
 
@@ -179,6 +180,7 @@ class Light(vtkLight):
 
     @intensity.setter
     def intensity(self, intensity):
+        intensity = np.clip(intensity, 0.0, 1.0)
         self.SetIntensity(intensity)
 
     @property
