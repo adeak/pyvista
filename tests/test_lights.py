@@ -1,5 +1,6 @@
 import math
-
+from hypothesis import given
+from hypothesis.strategies import iterables, tuples, lists, floats, integers, sampled_from
 import pytest
 import vtk
 
@@ -136,21 +137,11 @@ def test_shape():
     assert light.shadow_attenuation == shadow_attenuation
 
 
-@skip_no_plotting
-@pytest.mark.parametrize(
-    'int_code,enum_code',
-    [
-        (1, pyvista.Light.HEADLIGHT),
-        (2, pyvista.Light.CAMERA_LIGHT),
-        (3, pyvista.Light.SCENE_LIGHT),
-    ]
-)
-def test_type_properties(int_code, enum_code):
+@given(enum_code=sampled_from(pyvista.lights.LightType))
+def test_light_type_should_accept_int_or_enum(enum_code):
     light = pyvista.Light()
 
-    # test that the int and enum codes match up
-    assert int_code == enum_code
-
+    int_code = int(enum_code)
     # test that both codes work
     light.light_type = int_code
     assert light.light_type == int_code
