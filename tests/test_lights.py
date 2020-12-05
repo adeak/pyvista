@@ -14,6 +14,11 @@ skip_no_plotting = pytest.mark.skipif(not system_supports_plotting(),
 
 # TODO: invalid cases, once checks are in place
 
+
+@pytest.fixture()
+def light():
+    return pyvista.Light()
+
 @skip_no_plotting
 def test_init():
     position = (1, 1, 1)
