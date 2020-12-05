@@ -7,11 +7,6 @@ import vtk
 import pyvista
 from pyvista.plotting import system_supports_plotting
 # TODO: do we need OFF_SCREEN stuff? And as per tests/test_renderer.py or tests/plotting/test_plotting.py?
-# TODO: do we actually need the @skip_no_plotting decorator when there's no plotter?
-
-skip_no_plotting = pytest.mark.skipif(not system_supports_plotting(),
-                                      reason="Test requires system to support plotting")
-
 # TODO: invalid cases, once checks are in place
 
 
@@ -19,7 +14,7 @@ skip_no_plotting = pytest.mark.skipif(not system_supports_plotting(),
 def light():
     return pyvista.Light()
 
-@skip_no_plotting
+
 def test_init():
     position = (1, 1, 1)
     color = (0.5, 0.5, 0.5)
@@ -36,7 +31,6 @@ def test_init():
     assert repr(light) is not None
 
 
-@skip_no_plotting
 def test_colors(light):
     color = (0, 1, 0)
     light.diffuse_color = color
@@ -54,7 +48,6 @@ def test_colors(light):
     assert light.ambient_color == old_color
 
 
-@skip_no_plotting
 def test_positioning(light):
     position = (1, 1, 1)
     light.position = position
@@ -86,7 +79,6 @@ def test_intensity_should_accept_0_to_1(intensity, light):
     assert light.intensity == pytest.approx(intensity)
 
 
-@skip_no_plotting
 def test_switch_state(light):
     light.switch_on()
     assert light.is_on
@@ -98,7 +90,6 @@ def test_switch_state(light):
     assert not light.is_on
 
 
-@skip_no_plotting
 def test_positional(light):
     # default is directional light
     assert not light.positional
@@ -110,7 +101,6 @@ def test_positional(light):
     assert light.positional
 
 
-@skip_no_plotting
 def test_shape():
     exponent = 1.5
     light.exponent = exponent
@@ -144,7 +134,6 @@ def test_light_type_should_accept_int_or_enum(enum_code, light):
     assert light.light_type == enum_code
 
 
-@skip_no_plotting
 def test_type_setters(light):
     light.set_headlight()
     assert light.is_headlight
@@ -154,7 +143,6 @@ def test_type_setters(light):
     assert light.is_scene_light
 
 
-@skip_no_plotting
 def test_type_invalid():
     with pytest.raises(TypeError):
         light = pyvista.Light(light_type=['invalid'])
@@ -167,7 +155,6 @@ def test_type_invalid():
         light.light_type = ['invalid']
 
 
-@skip_no_plotting
 def test_from_vtk():
     vtk_light = vtk.vtkLight()
 
