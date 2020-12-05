@@ -37,9 +37,7 @@ def test_init():
 
 
 @skip_no_plotting
-def test_colors():
-    light = pyvista.Light()
-
+def test_colors(light):
     color = (0, 1, 0)
     light.diffuse_color = color
     assert light.diffuse_color == color
@@ -57,9 +55,7 @@ def test_colors():
 
 
 @skip_no_plotting
-def test_positioning():
-    light = pyvista.Light()
-
+def test_positioning(light):
     position = (1, 1, 1)
     light.position = position
     assert light.position == position
@@ -85,18 +81,14 @@ def test_positioning():
 
 
 @skip_no_plotting
-def test_intensity():
-    light = pyvista.Light()
-
+def test_intensity(light):
     intensity = 0.5
     light.intensity = intensity
     assert light.intensity == intensity
 
 
 @skip_no_plotting
-def test_switch_state():
-    light = pyvista.Light()
-
+def test_switch_state(light):
     light.switch_on()
     assert light.is_on
     light.switch_off()
@@ -108,9 +100,7 @@ def test_switch_state():
 
 
 @skip_no_plotting
-def test_positional():
-    light = pyvista.Light()
-
+def test_positional(light):
     # default is directional light
     assert not light.positional
     light.positional_on()
@@ -146,9 +136,7 @@ def test_cone_angle_should_accept_valid_angle(angle, light):
 
 
 @given(enum_code=sampled_from(pyvista.lights.LightType))
-def test_light_type_should_accept_int_or_enum(enum_code):
-    light = pyvista.Light()
-
+def test_light_type_should_accept_int_or_enum(enum_code, light):
     int_code = int(enum_code)
     # test that both codes work
     light.light_type = int_code
@@ -158,9 +146,7 @@ def test_light_type_should_accept_int_or_enum(enum_code):
 
 
 @skip_no_plotting
-def test_type_setters():
-    light = pyvista.Light()
-
+def test_type_setters(light):
     light.set_headlight()
     assert light.is_headlight
     light.set_camera_light()
