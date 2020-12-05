@@ -123,13 +123,13 @@ def test_shape():
 
 # TODO, is this the correct range?
 @given(value=floats(min_value=0.0, max_value=1.0))
-def test_shadow_attenuation_should_accept_valid(value, light):
+def test_shadow_attenuation_should_accept_0_to_1(value, light):
     light.shadow_attenuation = value
     assert light.shadow_attenuation == pytest.approx(value)
 
 
 @given(angle=one_of(integers(min_value=0, max_value=360), floats(min_value=0, max_value=360)))
-def test_cone_angle_should_accept_valid_angle(angle, light):
+def test_cone_angle_should_accept_0_to_360(angle, light):
     light.cone_angle = angle
     assert light.cone_angle == pytest.approx(angle)
 
