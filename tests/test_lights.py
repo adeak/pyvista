@@ -65,6 +65,8 @@ def test_colors_should_accept_valid(diffuse, specular, ambient, set_color, light
 
 @given(color=numeric_triple(allow_nan=False, allow_infinity=False))
 def test_colors_should_clamp_between_0_and_1(color, light):
+    assume(all(c < 0.0 or c > 1.0 for c in color))
+
     light.diffuse_color = color
     assert all([0.0 <= c <= 1.0 for c in light.diffuse_color])
     light.specular_color = color
