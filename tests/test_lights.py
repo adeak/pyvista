@@ -1,6 +1,6 @@
 import math
 from hypothesis import assume, given
-from hypothesis.strategies import iterables, tuples, lists, floats, integers, sampled_from, one_of
+from hypothesis.strategies import composite, iterables, tuples, lists, floats, integers, sampled_from, one_of
 import numpy as np
 import pytest
 import vtk
@@ -16,17 +16,27 @@ def light():
     return pyvista.Light()
 
 
-def test_init():
-    position = (1, 1, 1)
-    color = (0.5, 0.5, 0.5)
+@composite
+def numeric_triple(draw, min_value=None, max_value=None, allow_infinity=None, allow_nan=False):
+    """Return a tuple of length 3, containing numbers, int or float"""
+    _floats = floats(min_value=min_value, max_value=max_value, allow_infinity=allow_infinity, allow_nan=allow_nan)
+    _integers = integers(min_value=min_value, max_value=max_value)
+    return tuple(draw(lists(one_of(_floats, _integers), min_size=3, max_size=3)))
+
+
+@given(position=numeric_triple(allow_nan=False, allow_infinity=False),
+       color=numeric_triple(min_value=0.0, max_value=1.0))
+def test_init(position, color):
+    position = position
+    color = color
     light_type = 'headlight'
     light = pyvista.Light(position=position, color=color, light_type=light_type)
     assert isinstance(light, pyvista.Light)
-    assert light.position == position
-    assert light.ambient_color == color
-    assert light.diffuse_color == color
-    assert light.specular_color == color
-    assert light.light_type == light.HEADLIGHT
+    assert light.position == pytest.approx(position)
+    assert light.ambient_color == pytest.approx(color)
+    assert light.diffuse_color == pytest.approx(color)
+    assert light.specular_color == pytest.approx(color)
+    assert light.light_type == pyvista.Light.HEADLIGHT
 
     # check repr too
     assert repr(light) is not None
