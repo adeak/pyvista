@@ -1,62 +1,81 @@
 import math
 
+import numpy as np
 import pytest
 import vtk
+from hypothesis import assume, given
+from hypothesis.strategies import composite, lists, floats, integers, sampled_from, one_of
 
 import pyvista
-from pyvista.plotting import system_supports_plotting
+
+
 # TODO: do we need OFF_SCREEN stuff? And as per tests/test_renderer.py or tests/plotting/test_plotting.py?
-# TODO: do we actually need the @skip_no_plotting decorator when there's no plotter?
-
-skip_no_plotting = pytest.mark.skipif(not system_supports_plotting(),
-                                      reason="Test requires system to support plotting")
-
 # TODO: invalid cases, once checks are in place
 
-@skip_no_plotting
-def test_init():
-    position = (1, 1, 1)
-    color = (0.5, 0.5, 0.5)
+
+@pytest.fixture()
+def light():
+    return pyvista.Light()
+
+
+@composite
+def numeric_triple(draw, min_value=None, max_value=None, allow_infinity=None, allow_nan=False):
+    """Return a tuple of length 3, containing numbers, int or float"""
+    _floats = floats(min_value=min_value, max_value=max_value, allow_infinity=allow_infinity, allow_nan=allow_nan)
+    _integers = integers(min_value=min_value, max_value=max_value)
+    return tuple(draw(lists(one_of(_floats, _integers), min_size=3, max_size=3)))
+
+
+@given(position=numeric_triple(allow_nan=False, allow_infinity=False),
+       color=numeric_triple(min_value=0.0, max_value=1.0))
+def test_init(position, color):
+    position = position
+    color = color
     light_type = 'headlight'
     light = pyvista.Light(position=position, color=color, light_type=light_type)
     assert isinstance(light, pyvista.Light)
-    assert light.position == position
-    assert light.ambient_color == color
-    assert light.diffuse_color == color
-    assert light.specular_color == color
-    assert light.light_type == light.HEADLIGHT
+    assert light.position == pytest.approx(position)
+    assert light.ambient_color == pytest.approx(color)
+    assert light.diffuse_color == pytest.approx(color)
+    assert light.specular_color == pytest.approx(color)
+    assert light.light_type == pyvista.Light.HEADLIGHT
 
     # check repr too
     assert repr(light) is not None
 
 
-@skip_no_plotting
-def test_colors():
-    light = pyvista.Light()
-
-    color = (0, 1, 0)
+@given(color=numeric_triple(min_value=0.0, max_value=1.0),
+       set_all_color=numeric_triple(min_value=0.0, max_value=1.0))
+def test_colors_should_accept_valid(color, set_all_color, light):
     light.diffuse_color = color
-    assert light.diffuse_color == color
-    color = (0, 0, 1)
+    assert np.allclose(light.diffuse_color, color)
     light.specular_color = color
-    assert light.specular_color == color
-    color = (1, 0, 0)
+    assert np.allclose(light.specular_color, color)
     light.ambient_color = color
-    assert light.ambient_color == color
+    assert np.allclose(light.ambient_color, color)
 
-    old_color, color = color, (1, 1, 0)
+    old_color, color = color, set_all_color
     light.set_color(color)
     assert light.diffuse_color == light.specular_color == color
     assert light.ambient_color == old_color
 
 
-@skip_no_plotting
-def test_positioning():
-    light = pyvista.Light()
+@given(color=numeric_triple(allow_nan=False, allow_infinity=False))
+def test_colors_should_clamp_between_0_and_1(color, light):
+    assume(all(c < 0.0 or c > 1.0 for c in color))
 
+    light.diffuse_color = color
+    assert all([0.0 <= c <= 1.0 for c in light.diffuse_color])
+    light.specular_color = color
+    assert all([0.0 <= c <= 1.0 for c in light.specular_color])
+    light.ambient_color = color
+    assert all([0.0 <= c <= 1.0 for c in light.ambient_color])
+
+
+def test_positioning(light):
     position = (1, 1, 1)
     light.position = position
-    assert light.position == position
+    assert np.allclose(light.position, position)
     # with no transformation matrix this is also the world position
     assert light.world_position == position
 
@@ -78,19 +97,20 @@ def test_positioning():
                in zip(light.position, expected_position))  # TODO: fix this style
 
 
-@skip_no_plotting
-def test_intensity():
-    light = pyvista.Light()
-
-    intensity = 0.5
+@given(intensity=floats(min_value=0.0, max_value=1.0))
+def test_intensity_should_accept_0_to_1(intensity, light):
     light.intensity = intensity
-    assert light.intensity == intensity
+    assert light.intensity == pytest.approx(intensity)
 
 
-@skip_no_plotting
-def test_switch_state():
-    light = pyvista.Light()
+@given(intensity=floats(allow_nan=False))
+def test_intensity_should_clamp_0_to_1(intensity, light):
+    assume(not (0.0 < intensity < 1.0))
+    light.intensity = intensity
+    assert light.intensity == pytest.approx(np.clip(intensity, 0.0, 1.0))
 
+
+def test_switch_state(light):
     light.switch_on()
     assert light.is_on
     light.switch_off()
@@ -101,10 +121,7 @@ def test_switch_state():
     assert not light.is_on
 
 
-@skip_no_plotting
-def test_positional():
-    light = pyvista.Light()
-
+def test_positional(light):
     # default is directional light
     assert not light.positional
     light.positional_on()
@@ -115,42 +132,32 @@ def test_positional():
     assert light.positional
 
 
-@skip_no_plotting
 def test_shape():
-    light = pyvista.Light()
-
     exponent = 1.5
     light.exponent = exponent
     assert light.exponent == exponent
-
-    cone_angle = 45
-    light.cone_angle = cone_angle
-    assert light.cone_angle == cone_angle
 
     attenuation_values = (3, 2, 1)
     light.attenuation_values = attenuation_values
     assert light.attenuation_values == attenuation_values
 
-    shadow_attenuation = 0.5
-    light.shadow_attenuation = shadow_attenuation
-    assert light.shadow_attenuation == shadow_attenuation
+
+# TODO, is this the correct range?
+@given(value=floats(min_value=0.0, max_value=1.0))
+def test_shadow_attenuation_should_accept_0_to_1(value, light):
+    light.shadow_attenuation = value
+    assert light.shadow_attenuation == pytest.approx(value)
 
 
-@skip_no_plotting
-@pytest.mark.parametrize(
-    'int_code,enum_code',
-    [
-        (1, pyvista.Light.HEADLIGHT),
-        (2, pyvista.Light.CAMERA_LIGHT),
-        (3, pyvista.Light.SCENE_LIGHT),
-    ]
-)
-def test_type_properties(int_code, enum_code):
-    light = pyvista.Light()
+@given(angle=one_of(integers(min_value=0, max_value=360), floats(min_value=0, max_value=360)))
+def test_cone_angle_should_accept_0_to_360(angle, light):
+    light.cone_angle = angle
+    assert light.cone_angle == pytest.approx(angle)
 
-    # test that the int and enum codes match up
-    assert int_code == enum_code
 
+@given(enum_code=sampled_from(pyvista.lights.LightType))
+def test_light_type_should_accept_int_or_enum(enum_code, light):
+    int_code = int(enum_code)
     # test that both codes work
     light.light_type = int_code
     assert light.light_type == int_code
@@ -158,10 +165,7 @@ def test_type_properties(int_code, enum_code):
     assert light.light_type == enum_code
 
 
-@skip_no_plotting
-def test_type_setters():
-    light = pyvista.Light()
-
+def test_type_setters(light):
     light.set_headlight()
     assert light.is_headlight
     light.set_camera_light()
@@ -170,7 +174,6 @@ def test_type_setters():
     assert light.is_scene_light
 
 
-@skip_no_plotting
 def test_type_invalid():
     with pytest.raises(TypeError):
         light = pyvista.Light(light_type=['invalid'])
@@ -183,7 +186,6 @@ def test_type_invalid():
         light.light_type = ['invalid']
 
 
-@skip_no_plotting
 def test_from_vtk():
     vtk_light = vtk.vtkLight()
 
