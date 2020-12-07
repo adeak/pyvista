@@ -106,6 +106,7 @@ class Light(vtkLight):
     @ambient_color.setter
     def ambient_color(self, color):
         """Set the ambient color of the light."""
+        color = np.clip(color, 0.0, 1.0)
         self.SetAmbientColor(color)
 
     @property
@@ -116,6 +117,7 @@ class Light(vtkLight):
     @diffuse_color.setter
     def diffuse_color(self, color):
         """Set the diffuse color of the light."""
+        color = np.clip(color, 0.0, 1.0)
         self.SetDiffuseColor(color)
 
     @property
@@ -126,6 +128,7 @@ class Light(vtkLight):
     @specular_color.setter
     def specular_color(self, color):
         """Set the specular color of the light."""
+        color = np.clip(color, 0.0, 1.0)
         self.SetSpecularColor(color)
 
     # TODO: implement light.color = ... using setattr? no guarantee that a getter would always make sense, so property won't work!
@@ -338,6 +341,7 @@ class Light(vtkLight):
             The color that should be set for diffuse and specular.
 
         """
+        color = np.clip(color, 0.0, 1.0)
         self.SetColor(color)
 
     def switch_on(self):
