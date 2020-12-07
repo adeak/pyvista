@@ -63,6 +63,16 @@ def test_colors_should_accept_valid(diffuse, specular, ambient, set_color, light
     assert light.ambient_color == old_color
 
 
+@given(color=numeric_triple(allow_nan=False, allow_infinity=False))
+def test_colors_should_clamp_between_0_and_1(color, light):
+    light.diffuse_color = color
+    assert all([0.0 <= c <= 1.0 for c in light.diffuse_color])
+    light.specular_color = color
+    assert all([0.0 <= c <= 1.0 for c in light.specular_color])
+    light.ambient_color = color
+    assert all([0.0 <= c <= 1.0 for c in light.ambient_color])
+
+
 def test_positioning(light):
     position = (1, 1, 1)
     light.position = position
