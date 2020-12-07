@@ -1,12 +1,14 @@
 import math
-from hypothesis import assume, given
-from hypothesis.strategies import composite, iterables, tuples, lists, floats, integers, sampled_from, one_of
+
 import numpy as np
 import pytest
 import vtk
+from hypothesis import assume, given
+from hypothesis.strategies import composite, lists, floats, integers, sampled_from, one_of
 
 import pyvista
-from pyvista.plotting import system_supports_plotting
+
+
 # TODO: do we need OFF_SCREEN stuff? And as per tests/test_renderer.py or tests/plotting/test_plotting.py?
 # TODO: invalid cases, once checks are in place
 
