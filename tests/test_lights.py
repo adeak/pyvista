@@ -42,22 +42,17 @@ def test_init(position, color):
     assert repr(light) is not None
 
 
-@given(diffuse=numeric_triple(min_value=0.0, max_value=1.0),
-       specular=numeric_triple(min_value=0.0, max_value=1.0),
-       ambient=numeric_triple(min_value=0.0, max_value=1.0),
-       set_color=numeric_triple(min_value=0.0, max_value=1.0))
-def test_colors_should_accept_valid(diffuse, specular, ambient, set_color, light):
-    color = diffuse
+@given(color=numeric_triple(min_value=0.0, max_value=1.0),
+       set_all_color=numeric_triple(min_value=0.0, max_value=1.0))
+def test_colors_should_accept_valid(color, set_all_color, light):
     light.diffuse_color = color
     assert np.allclose(light.diffuse_color, color)
-    color = specular
     light.specular_color = color
     assert np.allclose(light.specular_color, color)
-    color = ambient
     light.ambient_color = color
     assert np.allclose(light.ambient_color, color)
 
-    old_color, color = color, set_color
+    old_color, color = color, set_all_color
     light.set_color(color)
     assert light.diffuse_color == light.specular_color == color
     assert light.ambient_color == old_color
