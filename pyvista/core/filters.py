@@ -2389,7 +2389,7 @@ class DataSetFilters:
               main_has_priority=True):
         """Join one or many other grids to this grid.
 
-        Grid is updated in-place by default.
+        A new merged grid is returned by default.
 
         Can be used to merge points of adjacent cells when no grids
         are input.
@@ -2405,7 +2405,7 @@ class DataSetFilters:
 
         inplace : bool, optional
             Updates grid inplace when True if the input type is an
-            :class:`pyvista.UnstructuredGrid`.
+            :class:`pyvista.UnstructuredGrid`. Default is ``False``.
 
         main_has_priority : bool, optional
             When this parameter is true and merge_points is true,

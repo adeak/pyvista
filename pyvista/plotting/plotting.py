@@ -2960,7 +2960,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
         Parameters
         ----------
         points : np.ndarray or pyvista.DataSet
-            n x 3 numpy array of points or pyvista dataset with points
+            n x 3 numpy array of points or pyvista dataset with points.
 
         labels : list or str
             List of labels.  Must be the same length as points. If a string name
@@ -2970,7 +2970,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
             Italicises title and bar labels.  Default False.
 
         bold : bool, optional
-            Bolds title and bar labels.  Default True
+            Bolds title and bar labels.  Default True.
 
         font_size : float, optional
             Sets the size of the title font.  Defaults to 16.
@@ -2987,10 +2987,10 @@ class BasePlotter(PickingHelper, WidgetHelper):
             Font family.  Must be either courier, times, or arial.
 
         shadow : bool, optional
-            Adds a black shadow to the text.  Defaults to False
+            Adds a black shadow to the text.  Defaults to False.
 
         show_points : bool, optional
-            Controls if points are visible.  Default True
+            Controls if points are visible.  Default True.
 
         point_color : string or 3 item list, optional. Color of points (if visible).
             Either a string, rgb list, or hex color string.  For example:
@@ -3001,15 +3001,20 @@ class BasePlotter(PickingHelper, WidgetHelper):
             * ``color='#FFFFFF'``
 
         point_size : float, optional
-            Size of points (if visible)
+            Size of points (if visible).
 
         name : str, optional
             The name for the added actor so that it can be easily updated.
             If an actor of this name already exists in the rendering window, it
             will be replaced by the new actor.
 
-        shape_color : string or 3 item list, optional. Color of points (if visible).
+        shape_color : string or 3 item list, optional. Color of the label background (if visible).
             Either a string, rgb list, or hex color string.  For example:
+
+            * ``color='white'``
+            * ``color='w'``
+            * ``color=[1, 1, 1]``
+            * ``color='#FFFFFF'``
 
         shape : str, optional
             The string name of the shape to use. Options are ``'rect'`` or
@@ -3163,7 +3168,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
         if fmt is None:
             fmt = '%.6e'
         scalars = points.point_arrays[labels]
-        phrase = f'{preamble} %.3e'
+        phrase = f'{preamble} {fmt}'
         labels = [phrase % val for val in scalars]
         return self.add_point_labels(points, labels, **kwargs)
 
